@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EveryPage: ask a PDF, and know which pages were actually read</title>
+<meta name="description" content="Ask a PDF a question. EveryPage names the page, verifies every quote in code, and says plainly when a page could not be read instead of answering no.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b2545'/%3E%3Cpath d='M9 8h10l4 4v12H9z' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M12 17l3 3 5-6' fill='none' stroke='%237ee2a8' stroke-width='2.2'/%3E%3C/svg%3E">
+<style>
+:root{--ink:#0f1b2d;--muted:#465468;--line:#d5dbe4;--bg:#f5f7fa;--card:#fff;--brand:#0b2545;--link:#0b4f9e;
+--ok:#0b6b2e;--okbg:#e6f4ea;--no:#7a4b00;--nobg:#fdf3dc;--cant:#a11a1a;--cantbg:#fdeaea;}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+a{color:var(--link)}
+header{background:var(--brand);color:#fff;padding:28px 16px 30px}
+.wrap{max-width:960px;margin:0 auto;min-width:0}
+header h1{margin:0 0 6px;font-size:clamp(26px,5vw,36px);letter-spacing:-.01em}
+header p{margin:0;max-width:64ch;color:#dbe6f5;font-size:17px}
+main{padding:20px 16px 48px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin:0 0 16px;min-width:0}
+h2{font-size:19px;margin:0 0 10px}
+.step{display:inline-block;background:var(--brand);color:#fff;border-radius:999px;width:26px;height:26px;line-height:26px;text-align:center;font-size:14px;font-weight:700;margin-right:8px}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.samples{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:10px 0 14px}
+button,.btn{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--brand);background:var(--brand);color:#fff;padding:10px 16px;font-weight:600}
+button.ghost{background:#fff;color:var(--brand);text-align:left;font-weight:500;padding:12px 14px}
+button.ghost strong{display:block;font-weight:700}
+button.ghost span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
+button:disabled{opacity:.55;cursor:not-allowed}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #f2b705;outline-offset:2px}
+.drop{border:2px dashed #8795a8;border-radius:12px;padding:16px;text-align:center;background:#fafbfd}
+.drop.over{background:#eaf2ff;border-color:var(--link)}
+input[type=file]{max-width:100%}
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:15px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:#eef2f7;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:13px;font-weight:700}
+.pill.ok{background:var(--okbg);color:var(--ok)}
+.pill.bad{background:var(--cantbg);color:var(--cant)}
+.cov{font-weight:700;margin:10px 0 0}
+.cov.bad{color:var(--cant)}
+.ask{display:flex;gap:8px;flex-wrap:wrap}
+.ask input{flex:1 1 260px;min-width:0;font:inherit;padding:11px 12px;border:1px solid #8795a8;border-radius:10px;color:var(--ink);background:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips button{background:#fff;color:var(--brand);border:1px solid var(--line);font-weight:500;font-size:14px;padding:6px 10px}
+.verdict{border-radius:12px;padding:16px;border:2px solid;margin-top:14px}
+.verdict h3{margin:0 0 6px;font-size:22px}
+.verdict.FOUND{background:var(--okbg);border-color:var(--ok)}.verdict.FOUND h3{color:var(--ok)}
+.verdict.NOT_FOUND{background:var(--nobg);border-color:var(--no)}.verdict.NOT_FOUND h3{color:var(--no)}
+.verdict.CANNOT_SAY{background:var(--cantbg);border-color:var(--cant)}.verdict.CANNOT_SAY h3{color:var(--cant)}
+.verdict p{margin:6px 0}
+.ev{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:start;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:10px;min-width:0}
+.ev img{width:96px;height:auto;border:1px solid var(--line);border-radius:4px;background:#fff}
+.ev blockquote{margin:0;font-size:15px;overflow-wrap:anywhere}
+.ev .where{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.meta{font-size:13px;color:var(--muted);margin-top:10px}
+.err{color:var(--cant);font-weight:600;margin-top:10px}
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.how div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px}
+.how strong{display:block;margin-bottom:4px}
+footer{padding:0 16px 40px;color:var(--muted);font-size:14px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #9fb0c6;border-top-color:var(--brand);border-radius:50%;animation:s 1s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes s{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>EveryPage</h1>
+  <p>Ask a PDF a question. It names the page, proves each quote is really there, and tells you when a page could not be read instead of telling you "no".</p>
+</div></header>
+
+<main><div class="wrap">
+
+  <section class="card" aria-labelledby="h1">
+    <h2 id="h1"><span class="step">1</span>Choose a document</h2>
+    <p class="muted small" style="margin:0">Try an invented sample, or use your own PDF.</p>
+    <div class="samples" id="samples"></div>
+    <div class="drop" id="drop">
+      <label for="file"><strong>Your own PDF</strong></label><br>
+      <input type="file" id="file" accept="application/pdf,.pdf">
+      <p class="muted small" id="limits" style="margin:8px 0 0"></p>
+    </div>
+    <p class="err" id="uperr" role="alert" hidden></p>
+  </section>
+
+  <section class="card" id="covcard" aria-labelledby="h2" hidden>
+    <h2 id="h2"><span class="step">2</span>What was actually read: <span id="docname"></span></h2>
+    <p class="muted small" style="margin:0 0 10px">Before any question, every page is read and measured. A scan is not an empty page, and a page read sideways is noise that looks like text.</p>
+    <div class="tablebox"><table>
+      <thead><tr><th>Page</th><th>How it was read</th><th>Characters</th><th>Legibility</th><th>Result</th></tr></thead>
+      <tbody id="pages"></tbody>
+    </table></div>
+    <p class="cov" id="cov" aria-live="polite"></p>
+  </section>
+
+  <section class="card" id="askcard" aria-labelledby="h3" hidden>
+    <h2 id="h3"><span class="step">3</span>Ask</h2>
+    <form class="ask" id="askform">
+      <label for="q" class="small" style="flex:1 0 100%">Your question about this document</label>
+      <input id="q" maxlength="300" autocomplete="off" placeholder="For example: are there unpaid taxes, and who pays them?">
+      <button id="askbtn" type="submit">Ask</button>
+    </form>
+    <div class="chips" id="chips"></div>
+    <p class="err" id="askerr" role="alert" hidden></p>
+    <div id="result" aria-live="polite"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h4">
+    <h2 id="h4">Three verdicts, never two</h2>
+    <div class="how">
+      <div><strong style="color:var(--ok)">FOUND</strong>The answer, with quotes. Code checks each quote is literally on the page it names. A quote that is not there is thrown away.</div>
+      <div><strong style="color:var(--no)">NOT FOUND</strong>Allowed only when every page was read and every page was examined. Then it is a real negative.</div>
+      <div><strong style="color:var(--cant)">CANNOT SAY</strong>Nothing was found, but some page could not be read. That is not a "no", and the tool says which pages.</div>
+    </div>
+    <p class="small muted" style="margin:12px 0 0">The model never gets to say "it is not in the document". Only the code says it, from the page count. Each page is examined by <span id="model">an NVIDIA Nemotron model</span> served by Nebius Token Factory. Uploaded files are deleted after <span id="ttl">30</span> minutes and are not used for anything else. This is a reading aid, not legal advice: read the quote.</p>
+  </section>
+
+</div></main>
+
+<footer><div class="wrap">
+  Built by <a href="https://devaland.com/ai-development">Devaland</a>. Open source under the MIT licence: <a href="https://github.com/MariusGithub13/everypage-web">code</a>. The sample documents are invented; every name and amount in them is made up.
+</div></footer>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var doc=null, poll=null, busy=false;
+  var QUESTIONS={
+    "sample-agreement":["Are there unpaid property taxes, how much, and who has to pay them?","Does the agreement say anything about a broker commission?","What is the purchase price?"],
+    "sample-damaged":["Are there unpaid property taxes, how much, and who has to pay them?","What is the purchase price?"]
+  };
+  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+  function show(el,on){el.hidden=!on}
+  function fail(el,msg){el.textContent=msg;show(el,true)}
+  async function api(path,opt){
+    var r=await fetch(path,opt); var d=null;
+    try{d=await r.json()}catch(e){}
+    if(!r.ok) throw new Error((d&&d.detail)||("Request failed ("+r.status+")"));
+    return d;
+  }
+  function renderPages(d){
+    $("docname").textContent=d.name;
+    var rows=d.pages.map(function(p){
+      var how=p.method==="ocr"?"scan, read by OCR"+(p.rotation?" (page was rotated "+p.rotation+"°)":""):(p.method==="text-layer"?"text layer":"could not be opened");
+      var ok=p.status==="ok";
+      return "<tr><td>"+p.n+"</td><td>"+esc(how)+"</td><td>"+p.chars+"</td><td>"+p.legibility.toFixed(2)+"</td><td><span class='pill "+(ok?"ok":"bad")+"'>"+(ok?"read":"could not be read")+"</span></td></tr>";
+    }).join("");
+    if(d.status==="reading"||d.status==="queued"){
+      var done=d.pages.length, tot=d.total||"?";
+      rows+="<tr><td colspan='5'><span class='spin'></span>"+(d.status==="queued"?"Waiting for the reader":"Reading page "+(done+1)+" of "+tot)+"</td></tr>";
+    }
+    $("pages").innerHTML=rows;
+    var cov=$("cov");
+    if(d.status==="ready"){
+      var bad=d.unreadable||[];
+      cov.className="cov"+(bad.length?" bad":"");
+      cov.textContent="Read "+d.readable+" of "+d.total+" pages"+(bad.length?". Could NOT read page"+(bad.length>1?"s ":" ")+bad.join(", ")+".":".");
+    } else if(d.status==="error"){cov.className="cov bad";cov.textContent=d.error||"This file could not be read."}
+    else {cov.className="cov";cov.textContent=""}
+  }
+  function setDoc(d){
+    doc=d; show($("covcard"),true); $("result").innerHTML=""; show($("askerr"),false);
+    renderPages(d);
+    var ready=d.status==="ready";
+    show($("askcard"),ready);
+    if(ready){
+      var qs=QUESTIONS[d.id]||[];
+      $("chips").innerHTML=qs.map(function(q){return "<button type='button'>"+esc(q)+"</button>"}).join("");
+      Array.prototype.forEach.call($("chips").children,function(b){b.onclick=function(){$("q").value=b.textContent;$("askform").requestSubmit()}});
+      $("covcard").scrollIntoView({behavior:"smooth",block:"start"});
+    }
+  }
+  function watch(id){
+    clearInterval(poll);
+    poll=setInterval(async function(){
+      try{var d=await api("/api/doc/"+id); if(doc&&doc.id!==id&&doc.id) {} ; doc=d; renderPages(d);
+        if(d.status==="ready"||d.status==="error"){clearInterval(poll); setDoc(d)}
+      }catch(e){clearInterval(poll); fail($("uperr"),e.message)}
+    },1200);
+  }
+  async function pick(id){
+    show($("uperr"),false);
+    try{var d=await api("/api/doc/"+id); setDoc(d); if(d.status!=="ready"&&d.status!=="error") watch(id)}
+    catch(e){fail($("uperr"),e.message)}
+  }
+  async function upload(f){
+    show($("uperr"),false);
+    if(!f) return;
+    var fd=new FormData(); fd.append("file",f);
+    try{var d=await api("/api/upload",{method:"POST",body:fd}); doc=d; show($("covcard"),true); show($("askcard"),false); renderPages(d); watch(d.id);
+      $("covcard").scrollIntoView({behavior:"smooth",block:"start"});}
+    catch(e){fail($("uperr"),e.message)}
+  }
+  function renderResult(r){
+    var title={FOUND:"FOUND",NOT_FOUND:"NOT FOUND",CANNOT_SAY:"CANNOT SAY"}[r.verdict];
+    var h="<div class='verdict "+r.verdict+"'><h3>"+title+"</h3>";
+    if(r.verdict==="FOUND"){
+      if(r.answer) h+="<p>"+esc(r.answer)+"</p>";
+      h+="<p class='small'><strong>Verified quotes.</strong> Each one was checked in code against the page it names.</p>";
+      r.evidence.forEach(function(e){
+        h+="<div class='ev'><img loading='lazy' alt='Preview of page "+e.page+"' src='/api/doc/"+encodeURIComponent(doc.id)+"/page/"+e.page+".png'><div><div class='where'>Page "+e.page+(e.method==="ocr"?" · read by OCR":"")+"</div><blockquote>“"+esc(e.quote)+"”</blockquote></div></div>";
+      });
+    } else if(r.verdict==="NOT_FOUND"){
+      h+="<p>All "+r.total+" of "+r.total+" pages were read and examined, and none of them answers this. So this is a real negative.</p>";
+    } else {
+      var why=[];
+      if(r.unreadable&&r.unreadable.length) why.push("page"+(r.unreadable.length>1?"s ":" ")+r.unreadable.join(", ")+" could not be read");
+      if(r.model_failed&&r.model_failed.length) why.push("page"+(r.model_failed.length>1?"s ":" ")+r.model_failed.join(", ")+" could not be examined by the model just now");
+      h+="<p>Nothing was found on the pages that were read, but "+esc(why.join(", and "))+". <strong>This is not a “no”.</strong> The answer may be on a page nobody has read yet.</p>";
+    }
+    if(r.rejected&&r.rejected.length) h+="<p class='small'>"+r.rejected.length+" quote"+(r.rejected.length>1?"s":"")+" the model offered "+(r.rejected.length>1?"were":"was")+" not on the page it named and "+(r.rejected.length>1?"were":"was")+" discarded.</p>";
+    h+="<p class='meta'>Examined "+r.examined+" of "+r.total+" pages in "+r.seconds+" s · "+esc(r.model)+" on Nebius Token Factory · "+((r.usage&&r.usage.calls)||0)+" model calls · about $"+Number(r.cost_usd).toFixed(4)+"</p></div>";
+    $("result").innerHTML=h;
+  }
+  $("askform").addEventListener("submit",async function(ev){
+    ev.preventDefault(); if(busy||!doc) return;
+    var q=$("q").value.trim(); show($("askerr"),false);
+    if(q.length<3){fail($("askerr"),"Type a question first.");return}
+    busy=true; $("askbtn").disabled=true; $("askbtn").textContent="Reading every page";
+    $("result").innerHTML="<p class='muted'><span class='spin'></span>Every readable page is being examined for this question.</p>";
+    try{var r=await api("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({doc_id:doc.id,question:q})}); renderResult(r)}
+    catch(e){$("result").innerHTML=""; fail($("askerr"),e.message)}
+    busy=false; $("askbtn").disabled=false; $("askbtn").textContent="Ask";
+  });
+  $("file").addEventListener("change",function(){upload(this.files[0])});
+  var drop=$("drop");
+  ["dragenter","dragover"].forEach(function(t){drop.addEventListener(t,function(e){e.preventDefault();drop.classList.add("over")})});
+  ["dragleave","drop"].forEach(function(t){drop.addEventListener(t,function(e){e.preventDefault();drop.classList.remove("over")})});
+  drop.addEventListener("drop",function(e){if(e.dataTransfer.files[0]) upload(e.dataTransfer.files[0])});
+  api("/api/config").then(function(c){
+    $("limits").textContent="Up to "+c.max_mb+" MB and "+c.max_pages+" pages. Deleted after "+c.ttl_min+" minutes. Please do not upload anything confidential to a public demo.";
+    $("ttl").textContent=c.ttl_min; $("model").textContent=c.model.split("/").pop();
+    $("samples").innerHTML=c.samples.map(function(s){return "<button class='ghost' type='button' data-id='"+esc(s.id)+"'><strong>"+esc(s.title)+"</strong><span>"+esc(s.note)+"</span></button>"}).join("");
+    Array.prototype.forEach.call($("samples").children,function(b){b.onclick=function(){pick(b.getAttribute("data-id"))}});
+  }).catch(function(e){fail($("uperr"),e.message)});
+})();
+</script>
+</body>
+</html>

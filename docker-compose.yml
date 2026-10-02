@@ -1,0 +1,21 @@
+# EveryPage hosted demo. The key comes from an env file that is never in this repository.
+services:
+  everypage:
+    build: .
+    image: everypage-web:latest
+    container_name: everypage-web
+    restart: unless-stopped
+    env_file:
+      - ${EVERYPAGE_ENV_FILE:-./.env}
+    ports:
+      - "${EVERYPAGE_BIND:-127.0.0.1:8092}:8000"
+    read_only: true
+    tmpfs:
+      - /work:size=400m,uid=10001
+      - /tmp:size=64m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    cpus: 1.5
+    mem_limit: 1g
+    pids_limit: 200
