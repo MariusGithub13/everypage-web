@@ -1,0 +1,78 @@
+/* ============================================================================
+   BARA DE ACCESIBILITATE DEVALAND
+   Componenta reutilizabila pentru site-uri de institutii publice.
+   ⛔NU foloseste niciun serviciu extern. Romos.ro ruleaza UserWay, un serviciu
+   comercial gazduit, legat de contul LOR: nu se poate copia, si ar cadea in
+   ziua in care isi schimba cheia. Aceasta este scrisa de noi, nu pleaca niciun
+   octet catre nimeni, si merge pe orice site pe care o punem.
+   ⭐Se aplica peste o pagina deja accesibila. Un widget de acest fel este o
+   COMODITATE vizibila, nu o dovada de conformitate WCAG.
+   ============================================================================ */
+
+.a11y-btn{position:fixed;left:18px;bottom:18px;z-index:9998;width:56px;height:56px;
+  border-radius:50%;background:#003a70;border:3px solid #fff;cursor:pointer;
+  box-shadow:0 3px 14px rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;
+  padding:0}
+.a11y-btn:hover{background:#00294f}
+.a11y-btn:focus-visible,.a11y-panel button:focus-visible,.a11y-panel [type=button]:focus-visible{
+  outline:3px solid #ffd200;outline-offset:2px}
+.a11y-btn svg{width:32px;height:32px;fill:#fff}
+
+.a11y-panel{position:fixed;right:0;top:0;bottom:0;width:340px;max-width:92vw;z-index:9999;
+  background:#fff;box-shadow:-4px 0 22px rgba(0,0,0,.30);display:flex;flex-direction:column;
+  transform:translateX(102%);transition:transform .22s ease;font-size:15px}
+.a11y-panel.open{transform:translateX(0)}
+/* ⛔`display:flex` de mai sus BATE regula implicita `[hidden]{display:none}`, fiind mai
+   specifica. Fara linia asta panoul inchis continua sa fie desenat in afara ecranului si
+   UMBRA lui se vedea ca o dunga palida pe marginea din dreapta, pe fiecare pagina, pe
+   telefon. Se vedea cu ochiul, dar nu si in verificarea de scroll orizontal, pentru ca
+   nu producea derulare. */
+.a11y-panel[hidden]{display:none}
+@media(prefers-reduced-motion:reduce){.a11y-panel{transition:none}}
+.a11y-head{background:#003a70;color:#fff;padding:14px 16px;display:flex;align-items:center;
+  justify-content:space-between;gap:10px}
+.a11y-head h2{margin:0;font-size:16.5px;color:#fff;border:0;line-height:1.3}
+.a11y-close{background:transparent;border:2px solid #fff;color:#fff;width:34px;height:34px;
+  border-radius:50%;font-size:19px;line-height:1;cursor:pointer;flex:0 0 auto}
+.a11y-close:hover{background:#fff;color:#003a70}
+.a11y-body{padding:14px 16px 20px;overflow-y:auto;flex:1}
+.a11y-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px;padding:0;list-style:none}
+.a11y-grid button{width:100%;background:#f4f7fa;border:1px solid #c9d6e2;border-radius:5px;
+  padding:14px 8px;font:600 13.5px/1.3 inherit;color:#12222f;cursor:pointer;text-align:center;
+  min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px}
+.a11y-grid button:hover{background:#e6eef6;border-color:#00509e}
+.a11y-grid button[aria-pressed=true]{background:#00305c;border-color:#00305c;color:#fff}
+.a11y-ico{font-size:19px;line-height:1}
+.a11y-reset{width:100%;background:#00305c;color:#fff;border:0;border-radius:5px;padding:12px;
+  font:700 15px/1 inherit;cursor:pointer}
+.a11y-reset:hover{background:#00509e}
+.a11y-note{margin:14px 0 0;font-size:12.5px;color:#4a5a68;line-height:1.5}
+
+/* ---- modurile aplicate pe <html> ---------------------------------------- */
+html.a11y-links a{text-decoration:underline !important;text-underline-offset:2px}
+html.a11y-spacing body{letter-spacing:.09em;word-spacing:.16em;line-height:1.95}
+html.a11y-readable body,html.a11y-readable body *{
+  font-family:Verdana,Tahoma,"DejaVu Sans",Arial,sans-serif !important}
+html.a11y-noanim *,html.a11y-noanim *::before,html.a11y-noanim *::after{
+  animation:none !important;transition:none !important;scroll-behavior:auto !important}
+html.a11y-noimg img:not(.a11y-keep){visibility:hidden}
+/* ⛔Filtrele se pun pe BODY, nu pe <html>: pe <html> ar prinde si panoul insusi,
+   iar butonul de contrast ar deveni ilizibil exact cand e folosit. */
+html.a11y-gray body{filter:grayscale(1)}
+html.a11y-invert body{filter:invert(1) hue-rotate(180deg)}
+html.a11y-invert body img,html.a11y-invert body video{filter:invert(1) hue-rotate(180deg)}
+html.a11y-contrast body{background:#000}
+html.a11y-contrast body,html.a11y-contrast body p,html.a11y-contrast body li,
+html.a11y-contrast body dd,html.a11y-contrast body dt,html.a11y-contrast body span,
+html.a11y-contrast body h1,html.a11y-contrast body h2,html.a11y-contrast body h3,
+html.a11y-contrast body td,html.a11y-contrast body th{color:#fff !important}
+html.a11y-contrast body a{color:#ffd200 !important}
+html.a11y-contrast body header,html.a11y-contrast body nav,html.a11y-contrast body footer,
+html.a11y-contrast body .util,html.a11y-contrast body .box,html.a11y-contrast body .card,
+html.a11y-contrast body .mesaj,html.a11y-contrast body .mesaj-text,html.a11y-contrast body .demo,
+html.a11y-contrast body main,html.a11y-contrast body section{background:#000 !important}
+html.a11y-light body{background:#fffdf5}
+html.a11y-light body main,html.a11y-light body .box,html.a11y-light body .mesaj-text{
+  background:#fffdf5 !important}
+/* panoul ramane NEATINS de moduri, ca sa poata fi mereu citit si inchis */
+.a11y-panel,.a11y-btn{filter:none !important}

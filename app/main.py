@@ -219,3 +219,16 @@ async def ask(request: Request):
     result["seconds"] = round(time.time() - t0, 1)
     result["model"] = llm.MODEL
     return JSONResponse(result)
+
+
+
+# Devaland accessibility bar (own component, source /opt/devaland/shared/a11y), added 06.10.2026.
+_A11Y = {"a11y.js": "text/javascript; charset=utf-8", "a11y.css": "text/css; charset=utf-8"}
+
+
+@app.get("/a11y.js")
+@app.get("/a11y.css")
+def _a11y_asset(request: Request):
+    name = request.url.path.lstrip("/")
+    return FileResponse(os.path.join(os.path.dirname(__file__), "static", name), media_type=_A11Y[name],
+                        headers={"Cache-Control": "public, max-age=86400"})
