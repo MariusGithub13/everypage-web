@@ -36,9 +36,9 @@ input[type=file]{max-width:100%}
 .tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
 table{border-collapse:collapse;width:100%;min-width:520px;font-size:15px}
 th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
-th{background:#eef2f7;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+th{background:#eef2f7;font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 tr:last-child td{border-bottom:0}
-.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:13px;font-weight:700}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:14px;font-weight:700}
 .pill.ok{background:var(--okbg);color:var(--ok)}
 .pill.bad{background:var(--cantbg);color:var(--cant)}
 .cov{font-weight:700;margin:10px 0 0}
@@ -53,11 +53,16 @@ tr:last-child td{border-bottom:0}
 .verdict.NOT_FOUND{background:var(--nobg);border-color:var(--no)}.verdict.NOT_FOUND h3{color:var(--no)}
 .verdict.CANNOT_SAY{background:var(--cantbg);border-color:var(--cant)}.verdict.CANNOT_SAY h3{color:var(--cant)}
 .verdict p{margin:6px 0}
+.verdict .lead{font-size:19px;font-weight:600;margin:4px 0 6px}
+.verdict .todo{font-size:17px;margin:0 0 10px}
+.why{margin:8px 0}.why summary{cursor:pointer;font-size:16px;font-weight:600;color:#093f7d;padding:6px 0}
+.verdict .meta,.verdict .small,.verdict .ev .where{color:#3a4656}
+.why summary:focus-visible,#verdictbox:focus-visible{outline:3px solid var(--link);outline-offset:2px}
 .ev{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:start;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:10px;min-width:0}
 .ev img{width:96px;height:auto;border:1px solid var(--line);border-radius:4px;background:#fff}
 .ev blockquote{margin:0;font-size:15px;overflow-wrap:anywhere}
-.ev .where{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
-.meta{font-size:13px;color:var(--muted);margin-top:10px}
+.ev .where{font-size:14px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.meta{font-size:14px;color:var(--muted);margin-top:10px}
 .err{color:var(--cant);font-weight:600;margin-top:10px}
 .how{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .how div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px}
@@ -198,26 +203,39 @@ footer{padding:0 16px 40px;color:var(--muted);font-size:14px}
       $("covcard").scrollIntoView({behavior:"smooth",block:"start"});}
     catch(e){fail($("uperr"),e.message)}
   }
+  // 20.10.2026 (judges' webinar, "the call to action at the very top, the reasons behind it"): the verdict and what
+  // to do with it come first, in one sentence; the evidence is one click below, never in the way.
   function renderResult(r){
     var title={FOUND:"FOUND",NOT_FOUND:"NOT FOUND",CANNOT_SAY:"CANNOT SAY"}[r.verdict];
-    var h="<div class='verdict "+r.verdict+"'><h3>"+title+"</h3>";
+    var pages=(r.evidence||[]).map(function(e){return e.page}).filter(function(v,i,a){return a.indexOf(v)===i});
+    var h="<div class='verdict "+r.verdict+"' id='verdictbox' tabindex='-1'><h3>"+title+"</h3>";
+    var why="";
     if(r.verdict==="FOUND"){
-      if(r.answer) h+="<p>"+esc(r.answer)+"</p>";
-      h+="<p class='small'><strong>Verified quotes.</strong> Each one was checked in code against the page it names.</p>";
+      h+="<p class='lead'>"+esc(r.answer||"The document answers this.")+"</p>";
+      h+="<p class='todo'>On page"+(pages.length>1?"s ":" ")+pages.join(", ")+". Every quote below was checked in code to be on the page it names.</p>";
+      why+="<p class='small'><strong>Verified quotes.</strong> Each one was checked in code against the page it names.</p>";
       r.evidence.forEach(function(e){
-        h+="<div class='ev'><img loading='lazy' alt='Preview of page "+e.page+"' src='/api/doc/"+encodeURIComponent(doc.id)+"/page/"+e.page+".png'><div><div class='where'>Page "+e.page+(e.method==="ocr"?" · read by OCR":"")+"</div><blockquote>“"+esc(e.quote)+"”</blockquote></div></div>";
+        why+="<div class='ev'><img loading='lazy' alt='Preview of page "+e.page+"' src='/api/doc/"+encodeURIComponent(doc.id)+"/page/"+e.page+".png'><div><div class='where'>Page "+e.page+(e.method==="ocr"?" · read by OCR":"")+"</div><blockquote>“"+esc(e.quote)+"”</blockquote></div></div>";
       });
     } else if(r.verdict==="NOT_FOUND"){
-      h+="<p>All "+r.total+" of "+r.total+" pages were read and examined, and none of them answers this. So this is a real negative.</p>";
+      h+="<p class='lead'>It is not in this document.</p>";
+      h+="<p class='todo'>You can rely on this “no”: all "+r.total+" of "+r.total+" pages were read and examined.</p>";
+      why+="<p>All "+r.total+" of "+r.total+" pages were read and examined, and none of them answers this. So this is a real negative.</p>";
     } else {
-      var why=[];
-      if(r.unreadable&&r.unreadable.length) why.push("page"+(r.unreadable.length>1?"s ":" ")+r.unreadable.join(", ")+" could not be read");
-      if(r.model_failed&&r.model_failed.length) why.push("page"+(r.model_failed.length>1?"s ":" ")+r.model_failed.join(", ")+" could not be examined by the model just now");
-      h+="<p>Nothing was found on the pages that were read, but "+esc(why.join(", and "))+". <strong>This is not a “no”.</strong> The answer may be on a page nobody has read yet.</p>";
+      var miss=(r.unreadable||[]).concat(r.model_failed||[]).sort(function(a,b){return a-b});
+      h+="<p class='lead'>Not answered yet. This is not a “no”.</p>";
+      h+="<p class='todo'>Check page"+(miss.length>1?"s ":" ")+miss.join(", ")+" by eye before you rely on it: the answer may be there.</p>";
+      var w=[];
+      if(r.unreadable&&r.unreadable.length) w.push("page"+(r.unreadable.length>1?"s ":" ")+r.unreadable.join(", ")+" could not be read");
+      if(r.model_failed&&r.model_failed.length) w.push("page"+(r.model_failed.length>1?"s ":" ")+r.model_failed.join(", ")+" could not be examined by the model just now");
+      why+="<p>Nothing was found on the pages that were read, but "+esc(w.join(", and "))+". The answer may be on a page nobody has read yet.</p>";
     }
-    if(r.rejected&&r.rejected.length) h+="<p class='small'>"+r.rejected.length+" quote"+(r.rejected.length>1?"s":"")+" the model offered "+(r.rejected.length>1?"were":"was")+" not on the page it named and "+(r.rejected.length>1?"were":"was")+" discarded.</p>";
+    if(r.rejected&&r.rejected.length) why+="<p class='small'>"+r.rejected.length+" quote"+(r.rejected.length>1?"s":"")+" the model offered "+(r.rejected.length>1?"were":"was")+" not on the page it named and "+(r.rejected.length>1?"were":"was")+" discarded.</p>";
+    var n=r.verdict==="FOUND"?(r.evidence.length+" verified quote"+(r.evidence.length>1?"s":"")):"how this was decided";
+    h+="<details class='why'><summary>Why: "+n+"</summary>"+why+"</details>";
     h+="<p class='meta'>Examined "+r.examined+" of "+r.total+" pages in "+r.seconds+" s · "+esc(r.model)+" on Nebius Token Factory · "+((r.usage&&r.usage.calls)||0)+" model calls · about $"+Number(r.cost_usd).toFixed(4)+"</p></div>";
     $("result").innerHTML=h;
+    var vb=$("verdictbox"); if(vb){vb.scrollIntoView({behavior:"smooth",block:"start"}); vb.focus({preventScroll:true})}
   }
   $("askform").addEventListener("submit",async function(ev){
     ev.preventDefault(); if(busy||!doc) return;
