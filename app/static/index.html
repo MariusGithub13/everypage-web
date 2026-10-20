@@ -55,6 +55,9 @@ tr:last-child td{border-bottom:0}
 .verdict p{margin:6px 0}
 .verdict .lead{font-size:19px;font-weight:600;margin:4px 0 6px}
 .verdict .todo{font-size:17px;margin:0 0 10px}
+.verdict .baseline{font-size:16px;margin:0 0 10px;padding:8px 10px;border-left:4px solid var(--ink);background:#fff;color:var(--ink)}
+.progress .bar{height:10px;border-radius:999px;background:#e3e8ef;overflow:hidden;margin-top:6px}
+#progbar{height:100%;width:0;background:var(--brand);transition:width .3s}
 .why{margin:8px 0}.why summary{cursor:pointer;font-size:16px;font-weight:600;color:#093f7d;padding:6px 0}
 .verdict .meta,.verdict .small,.verdict .ev .where{color:#3a4656}
 .why summary:focus-visible,#verdictbox:focus-visible{outline:3px solid var(--link);outline-offset:2px}
@@ -231,6 +234,18 @@ footer{padding:0 16px 40px;color:var(--muted);font-size:14px}
       why+="<p>Nothing was found on the pages that were read, but "+esc(w.join(", and "))+". The answer may be on a page nobody has read yet.</p>";
     }
     if(r.rejected&&r.rejected.length) why+="<p class='small'>"+r.rejected.length+" quote"+(r.rejected.length>1?"s":"")+" the model offered "+(r.rejected.length>1?"were":"was")+" not on the page it named and "+(r.rejected.length>1?"were":"was")+" discarded.</p>";
+    // 20.10.2026 (judges' webinar, "a baseline comparison"): what a tool that reads only the text layer would have seen
+    // in THIS document, computed by the server from the pages; shown only when some page had no text layer.
+    var b=r.baseline;
+    if(b){
+      var line="A tool that reads only the text layer would have read "+b.text_layer_pages+" of these "+b.total+" pages";
+      if(r.verdict==="FOUND"&&b.answer_on_pages_without_text_layer.length){
+        var hp=b.answer_on_pages_without_text_layer;
+        line+=". The answer is on page"+(hp.length>1?"s ":" ")+hp.join(", ")+", which "+(hp.length>1?"have":"has")+" no text layer: it would not have seen it.";
+      } else if(r.verdict!=="FOUND"){ line+=", and could have answered that it is not in the document."; }
+      else { line+="."; }
+      h+="<p class='baseline'>"+esc(line)+"</p>";
+    }
     var n=r.verdict==="FOUND"?(r.evidence.length+" verified quote"+(r.evidence.length>1?"s":"")):"how this was decided";
     h+="<details class='why'><summary>Why: "+n+"</summary>"+why+"</details>";
     h+="<p class='meta'>Examined "+r.examined+" of "+r.total+" pages in "+r.seconds+" s · "+esc(r.model)+" on Nebius Token Factory · "+((r.usage&&r.usage.calls)||0)+" model calls · about $"+Number(r.cost_usd).toFixed(4)+"</p></div>";
@@ -242,9 +257,16 @@ footer{padding:0 16px 40px;color:var(--muted);font-size:14px}
     var q=$("q").value.trim(); show($("askerr"),false);
     if(q.length<3){fail($("askerr"),"Type a question first.");return}
     busy=true; $("askbtn").disabled=true; $("askbtn").textContent="Reading every page";
-    $("result").innerHTML="<p class='muted'><span class='spin'></span>Every readable page is being examined for this question.</p>";
-    try{var r=await api("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({doc_id:doc.id,question:q})}); renderResult(r)}
-    catch(e){$("result").innerHTML=""; fail($("askerr"),e.message)}
+    // live progress (20.10.2026, judges' webinar: "progress bars"): the server counts the pages examined so far
+    var job=Array.from(crypto.getRandomValues(new Uint8Array(8))).map(function(x){return ("0"+x.toString(16)).slice(-2)}).join("");
+    $("result").innerHTML="<div class='progress' role='status'><p class='muted' id='progtext'><span class='spin'></span>Every readable page is being examined for this question.</p><div class='bar'><div id='progbar'></div></div></div>";
+    var timer=setInterval(async function(){
+      try{var pr=await (await fetch("/api/progress/"+job)).json();
+        if(pr.total){$("progtext").innerHTML="<span class='spin'></span>Examined "+pr.done+" of "+pr.total+" readable pages";
+          $("progbar").style.width=Math.round(100*pr.done/pr.total)+"%"}}catch(e){}
+    },500);
+    try{var r=await api("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({doc_id:doc.id,question:q,job:job})}); clearInterval(timer); renderResult(r)}
+    catch(e){clearInterval(timer); $("result").innerHTML=""; fail($("askerr"),e.message)}
     busy=false; $("askbtn").disabled=false; $("askbtn").textContent="Ask";
   });
   $("file").addEventListener("change",function(){upload(this.files[0])});

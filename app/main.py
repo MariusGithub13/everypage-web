@@ -6,6 +6,7 @@ CANNOT SAY  nothing was found, but some page could not be read or examined; this
 
 Uploads live in a temp folder and are deleted after TTL_MIN minutes. Nothing is kept after that.
 """
+import asyncio
 import json
 import os
 import re
@@ -192,6 +193,16 @@ def page_image(doc_id: str, n: int):
     return FileResponse(path, media_type="image/png", headers={"Cache-Control": "private, max-age=600"})
 
 
+jobs = {}
+
+
+@app.get("/api/progress/{job}")
+def get_progress(job: str):
+    for k in [k for k, v in jobs.items() if time.time() - v["t"] > 600]:
+        jobs.pop(k, None)
+    return jobs.get(job) or {"done": None, "total": None}
+
+
 @app.post("/api/ask")
 async def ask(request: Request):
     _roll_day()
@@ -214,7 +225,17 @@ async def ask(request: Request):
         raise HTTPException(429, "The demo has used its model budget for today. Come back tomorrow, or run it yourself: the code is open.")
     day["questions"][ip] += 1
     t0 = time.time()
-    result = ask_mod.ask(state["doc"], question)
+    # 20.10.2026: progress for the page ("page 3 of 6 examined"), keyed by an id the page chooses; and the work runs in
+    # a thread, so one visitor's question no longer blocks the server for everyone else while it is examined.
+    job = str(body.get("job", ""))
+    job = job if re.fullmatch(r"[a-f0-9]{16}", job) else None
+
+    def progress(done, total):
+        if job:
+            jobs[job] = {"done": done, "total": total, "t": time.time()}
+    result = await asyncio.to_thread(ask_mod.ask, state["doc"], question, None, progress)
+    if job:
+        jobs.pop(job, None)
     day["spent"] += result["cost_usd"]
     result["seconds"] = round(time.time() - t0, 1)
     result["model"] = llm.MODEL

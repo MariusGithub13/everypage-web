@@ -74,14 +74,39 @@ def _examine(page, question, generate, counter):
     return page["n"], kept, rejected, False
 
 
-def ask(doc, question, generate=None):
+def baseline(doc, evidence):
+    """What a tool that reads only the text layer would have seen in THIS document (20.10.2026, judges' webinar:
+    "a baseline comparison"). Computed from the pages, never invented: None when every page has a text layer."""
+    total = doc["total"]
+    text_layer = [p["n"] for p in doc["pages"] if p.get("method") == "text-layer"]
+    if len(text_layer) >= total:
+        return None
+    hidden = sorted({e["page"] for e in evidence if e["page"] not in text_layer})
+    return {"text_layer_pages": len(text_layer), "total": total, "answer_on_pages_without_text_layer": hidden}
+
+
+def ask(doc, question, generate=None, on_progress=None):
+    """on_progress(done, total) is called as each readable page has been examined (the page shows it live)."""
     generate = generate or llm.generate
     counter = {}
     readable = [p for p in doc["pages"] if p["status"] == "ok"]
     by_n = {p["n"]: p for p in readable}
     evidence, rejected, failed = [], [], []
+    done = [0]
+    import threading
+    lock = threading.Lock()
+
+    def one(p):
+        r = _examine(p, question, generate, counter)
+        if on_progress:
+            with lock:
+                done[0] += 1
+                on_progress(done[0], len(readable))
+        return r
+    if on_progress:
+        on_progress(0, len(readable))
     with ThreadPoolExecutor(max_workers=WORKERS) as ex:
-        results = list(ex.map(lambda p: _examine(p, question, generate, counter), readable))
+        results = list(ex.map(one, readable))
     # A page whose call failed gets one more try, alone, before it is allowed to count as unexamined.
     retried = []
     for n, kept, rej, fail in results:
@@ -109,5 +134,5 @@ def ask(doc, question, generate=None):
             answer = None     # the verified quotes still stand on their own
     return {"verdict": verdict, "answer": answer, "evidence": evidence, "rejected": rejected,
             "examined": len(readable) - len(failed), "total": doc["total"],
-            "unreadable": doc["unreadable"], "model_failed": failed,
+            "unreadable": doc["unreadable"], "model_failed": failed, "baseline": baseline(doc, evidence),
             "usage": counter, "cost_usd": round(llm.cost(counter.get("prompt_tokens", 0), counter.get("completion_tokens", 0)), 6)}

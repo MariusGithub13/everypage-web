@@ -69,3 +69,23 @@ def test_legibility_separates_prose_from_ocr_noise():
     assert legibility("The seller shall pay the amount in full before the date of closing of this agreement.") > 0.3
     assert legibility("pebueyoun ee me oe xqzt vrrk lmno ptuv wxyz abce dfgh ijkl") < 0.18
     assert legibility("Consiliul local al comunei aprobă suma de 5.000 lei pentru anul 2026, conform legii.") > 0.3
+
+
+def test_baseline_names_what_a_text_layer_tool_would_miss():
+    d = doc(["Intro text about the sale of the house.", TAX, "Signatures of both parties."])
+    d["pages"][1]["method"] = "ocr"          # the answer sits on a scanned page
+    r = ask_mod.ask(d, "unpaid taxes?", generate=fake({2: {"relevant": True, "quotes": [TAX]}}))
+    assert r["verdict"] == FOUND
+    assert r["baseline"] == {"text_layer_pages": 2, "total": 3, "answer_on_pages_without_text_layer": [2]}
+
+
+def test_no_baseline_when_every_page_has_a_text_layer():
+    d = doc(["Intro text about the sale of the house.", TAX])
+    assert ask_mod.ask(d, "unpaid taxes?", generate=fake({}))["baseline"] is None
+
+
+def test_progress_counts_every_examined_page():
+    d = doc(["Intro text about the sale of the house.", TAX, "Signatures of both parties."])
+    seen = []
+    ask_mod.ask(d, "unpaid taxes?", generate=fake({}), on_progress=lambda done, total: seen.append((done, total)))
+    assert seen[0] == (0, 3) and seen[-1] == (3, 3) and len(seen) == 4
