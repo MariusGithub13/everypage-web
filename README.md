@@ -22,7 +22,7 @@ The model is never allowed to say "it is not in the document". Only the code can
 
 ## How it works
 
-1. **Read every page and measure it.** Each page is read from its text layer, or by OCR when there is none. The app scores how legible the result is (the share of everyday words, English and Romanian), tries other rotations when a page reads as noise, and marks a page as unreadable when nothing works. The coverage table is shown before any question is asked.
+1. **Read every page and measure it.** Each page is read from its text layer, or by OCR when there is none. The app scores how legible the result is (the share of everyday words in the language chosen for the document), tries other rotations when a page reads as noise, and marks a page as unreadable when nothing works. The coverage table is shown before any question is asked.
 2. **Examine every readable page.** There is no retrieval step that decides what the model may skip. Each page goes to the model with the question, and the model must return verbatim quotes as JSON.
 3. **Verify every quote in code.** A quote that is not literally on the page it names is thrown away, whatever the model says about it.
 4. **Write the answer only from verified quotes**, each with its page number, next to a preview of that page.
@@ -53,7 +53,7 @@ cp .env.example .env      # put your NEBIUS_API_KEY in .env
 docker compose up --build
 ```
 
-Then open http://127.0.0.1:8092. The image installs Poppler and Tesseract (English and Romanian).
+Then open http://127.0.0.1:8092. The image installs Poppler and Tesseract (English, Romanian, German, French, Spanish and Italian).
 
 Settings, all optional, as environment variables: `EVERYPAGE_MODEL`, `EVERYPAGE_MAX_MB` (8), `EVERYPAGE_MAX_PAGES` (25), `EVERYPAGE_TTL_MIN` (30), `EVERYPAGE_DAY_BUDGET_USD` (1.50), `EVERYPAGE_IP_UPLOADS` (6), `EVERYPAGE_IP_QUESTIONS` (40).
 
@@ -69,7 +69,7 @@ The tests need no model and no network. They cover the rules that decide a verdi
 
 - An uploaded file is kept in memory-backed temporary storage and deleted after 30 minutes. Page text is sent to the model to answer your question and is not stored by this app.
 - PDFs only, up to 8 MB and 25 pages in the demo.
-- The legibility check knows English and Romanian. Pages in other languages may be marked unreadable, which is the safe way to be wrong.
+- Scanned pages are read in six languages: English and Romanian (the default), German, French, Spanish and Italian, chosen on the page before uploading. Pages in other languages may be marked unreadable, which is the safe way to be wrong.
 - A verified quote proves the words are on the page, not that the model understood them. Read the quote. This is a reading aid, not legal advice.
 - The sample documents are invented. Every name, place and amount in them is made up.
 
