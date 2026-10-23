@@ -89,3 +89,20 @@ def test_progress_counts_every_examined_page():
     seen = []
     ask_mod.ask(d, "unpaid taxes?", generate=fake({}), on_progress=lambda done, total: seen.append((done, total)))
     assert seen[0] == (0, 3) and seen[-1] == (3, 3) and len(seen) == 4
+
+
+def test_legibility_in_the_chosen_language():
+    from app.ingest import LANGS, legibility
+    de = "Der Käufer zahlt den Kaufpreis von 20.000 Euro bis zum Datum der Unterschrift an den Verkäufer."
+    fr = "Le vendeur et l'acheteur ont signé le contrat de vente avec le prix total de la maison en euros."
+    assert legibility(de, "de") > 0.3 and legibility(de) < 0.18      # read as German it is prose; as English, noise
+    assert legibility(fr, "fr") > 0.3
+    assert legibility("pebueyoun ee me oe xqzt vrrk lmno ptuv wxyz abce dfgh ijkl", "de") < 0.18
+    assert LANGS["en"] == "eng+ron"                                  # the default reads exactly as before
+
+
+def test_unknown_language_is_refused_not_guessed():
+    import pytest
+    from app.ingest import read_pdf
+    with pytest.raises(ValueError):
+        read_pdf("/nonexistent.pdf", lang="xx")

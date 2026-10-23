@@ -17,7 +17,7 @@ import threading
 import time
 from collections import defaultdict
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from . import ask as ask_mod
@@ -81,7 +81,7 @@ def _ingest(state):
             def on_page(page, _total):
                 state["pages"].append(page)
 
-            doc = ingest.read_pdf(state["pdf"], on_page=on_page, thumbs_dir=state["dir"])
+            doc = ingest.read_pdf(state["pdf"], on_page=on_page, thumbs_dir=state["dir"], lang=state.get("lang", "en"))
             state["doc"] = doc
             state["status"] = "ready"
         except ValueError as e:
@@ -153,8 +153,10 @@ def config():
 
 
 @app.post("/api/upload")
-async def upload(request: Request, file: UploadFile = File(...)):
+async def upload(request: Request, file: UploadFile = File(...), lang: str = Form("en")):
     _roll_day()
+    if lang not in ingest.LANGS:
+        raise HTTPException(400, "Unknown document language.")
     ip = _ip(request)
     if day["uploads"][ip] >= IP_UPLOADS:
         raise HTTPException(429, "Daily upload limit reached for this demo. The sample documents still work.")
@@ -170,6 +172,7 @@ async def upload(request: Request, file: UploadFile = File(...)):
         f.write(data)
     name = re.sub(r"[^\w .()-]", "_", os.path.basename(file.filename or "document.pdf"))[:80]
     state = _new_state(name, pdf, folder)
+    state["lang"] = lang
     threading.Thread(target=_ingest, args=(state,), daemon=True).start()
     return _public(state)
 

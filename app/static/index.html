@@ -29,7 +29,8 @@ button.ghost{background:#fff;color:var(--brand);text-align:left;font-weight:500;
 button.ghost strong{display:block;font-weight:700}
 button.ghost span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
 button:disabled{opacity:.55;cursor:not-allowed}
-button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #f2b705;outline-offset:2px}
+select{font:inherit;font-size:16px;padding:8px 10px;border:1px solid #8795a8;border-radius:8px;background:#fff;color:inherit;max-width:100%;margin-top:4px}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #f2b705;outline-offset:2px}
 .drop{border:2px dashed #8795a8;border-radius:12px;padding:16px;text-align:center;background:#fafbfd}
 .drop.over{background:#eaf2ff;border-color:var(--link)}
 input[type=file]{max-width:100%}
@@ -90,7 +91,16 @@ footer{padding:0 16px 40px;color:var(--muted);font-size:14px}
     <h2 id="h1"><span class="step">1</span>Choose a document</h2>
     <p class="muted small" style="margin:0">Try an invented sample, or use your own PDF.</p>
     <div class="samples" id="samples"></div>
+    <p class="small" style="margin:0 0 14px">Works on English PDFs, scanned or not; scans also in Romanian, German, French, Spanish, Italian.</p>
     <div class="drop" id="drop">
+      <label for="lang" class="small">Language of your document (used to read scanned pages)</label><br>
+      <select id="lang">
+        <option value="en" selected>English or Romanian</option>
+        <option value="de">German</option>
+        <option value="fr">French</option>
+        <option value="es">Spanish</option>
+        <option value="it">Italian</option>
+      </select><br><br>
       <label for="file"><strong>Your own PDF</strong></label><br>
       <input type="file" id="file" accept="application/pdf,.pdf">
       <p class="muted small" id="limits" style="margin:8px 0 0"></p>
@@ -201,7 +211,7 @@ footer{padding:0 16px 40px;color:var(--muted);font-size:14px}
   async function upload(f){
     show($("uperr"),false);
     if(!f) return;
-    var fd=new FormData(); fd.append("file",f);
+    var fd=new FormData(); fd.append("file",f); fd.append("lang",$("lang").value);
     try{var d=await api("/api/upload",{method:"POST",body:fd}); doc=d; show($("covcard"),true); show($("askcard"),false); renderPages(d); watch(d.id);
       $("covcard").scrollIntoView({behavior:"smooth",block:"start"});}
     catch(e){fail($("uperr"),e.message)}
