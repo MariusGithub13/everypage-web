@@ -250,6 +250,12 @@ async def ask(request: Request):
 _A11Y = {"a11y.js": "text/javascript; charset=utf-8", "a11y.css": "text/css; charset=utf-8"}
 
 
+@app.get("/fonts/newsreader-latin.woff2")
+def _font():
+    return FileResponse(os.path.join(HERE, "static", "fonts", "newsreader-latin.woff2"), media_type="font/woff2",
+                        headers={"Cache-Control": "public, max-age=31536000, immutable"})
+
+
 @app.get("/a11y.js")
 @app.get("/a11y.css")
 def _a11y_asset(request: Request):
