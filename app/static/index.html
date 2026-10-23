@@ -88,6 +88,17 @@ footer .wrap{padding-top:18px}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line2);border-top-color:var(--brass);border-radius:50%;animation:s 1s linear infinite;vertical-align:-2px;margin-right:6px}
 @keyframes s{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}}
+.langs{border:0;margin:0 0 6px;padding:0;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-width:0}
+.langs legend{width:100%;text-align:center;font-weight:700;margin:0 0 10px;padding:0;color:var(--ink)}
+.langs input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.langs label{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border:1px solid var(--line2);border-radius:999px;background:var(--bg);color:var(--ink);font-size:16px;cursor:pointer}
+.langs label:hover{border-color:var(--brass)}
+.langs svg{width:24px;height:16px;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.25);flex:none}
+.langs input:checked+label{border:2px solid var(--brass);padding:7px 13px;background:#221C10;font-weight:700}
+.langs input:checked+label::after{content:"\2713";color:var(--gold);font-weight:700}
+.langs input:focus-visible+label{outline:3px solid var(--gold);outline-offset:2px}
+.langhint{margin:4px 0 16px;color:var(--muted);font-size:15px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 [hidden]{display:none!important}
 </style>
 <link rel="preload" as="font" type="font/woff2" href="/fonts/newsreader-latin.woff2" crossorigin>
@@ -108,14 +119,17 @@ footer .wrap{padding-top:18px}
     <div class="samples" id="samples"></div>
     <p style="margin:0 0 14px">Works on English PDFs, scanned or not; scans also in Romanian, German, French, Spanish, Italian.</p>
     <div class="drop" id="drop">
-      <label for="lang">Language of your document (used to read scanned pages)</label><br>
-      <select id="lang">
-        <option value="en" selected>English or Romanian</option>
-        <option value="de">German</option>
-        <option value="fr">French</option>
-        <option value="es">Spanish</option>
-        <option value="it">Italian</option>
-      </select><br><br>
+      <fieldset class="langs">
+        <legend>Your document's language</legend>
+        <input type="radio" name="lang" id="lang-gb" value="en" checked><label for="lang-gb" lang="en"><svg viewBox="0 0 60 30" aria-hidden="true"><clipPath id="fgb"><path d="M30,15h30v15zv15h-30zh-30v-15zv-15h30z"/></clipPath><path d="M0,0v30h60v-30z" fill="#012169"/><path d="M0,0L60,30M60,0L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0L60,30M60,0L0,30" clip-path="url(#fgb)" stroke="#C8102E" stroke-width="4"/><path d="M30,0v30M0,15h60" stroke="#fff" stroke-width="10"/><path d="M30,0v30M0,15h60" stroke="#C8102E" stroke-width="6"/></svg><span>English</span><span class="vh"> (English)</span></label>
+        <input type="radio" name="lang" id="lang-ro" value="en"><label for="lang-ro" lang="ro"><svg viewBox="0 0 3 2" aria-hidden="true"><path fill="#002B7F" d="M0 0h1v2H0z"/><path fill="#FCD116" d="M1 0h1v2H1z"/><path fill="#CE1126" d="M2 0h1v2H2z"/></svg><span>Română</span><span class="vh"> (Romanian)</span></label>
+        <input type="radio" name="lang" id="lang-de" value="de"><label for="lang-de" lang="de"><svg viewBox="0 0 5 3" aria-hidden="true"><path d="M0 0h5v1H0z"/><path fill="#D00" d="M0 1h5v1H0z"/><path fill="#FFCE00" d="M0 2h5v1H0z"/></svg><span>Deutsch</span><span class="vh"> (German)</span></label>
+        <input type="radio" name="lang" id="lang-fr" value="fr"><label for="lang-fr" lang="fr"><svg viewBox="0 0 3 2" aria-hidden="true"><path fill="#002395" d="M0 0h1v2H0z"/><path fill="#fff" d="M1 0h1v2H1z"/><path fill="#ED2939" d="M2 0h1v2H2z"/></svg><span>Français</span><span class="vh"> (French)</span></label>
+        <input type="radio" name="lang" id="lang-es" value="es"><label for="lang-es" lang="es"><svg viewBox="0 0 3 2" aria-hidden="true"><path fill="#AA151B" d="M0 0h3v2H0z"/><path fill="#F1BF00" d="M0 .5h3v1H0z"/></svg><span>Español</span><span class="vh"> (Spanish)</span></label>
+        <input type="radio" name="lang" id="lang-it" value="it"><label for="lang-it" lang="it"><svg viewBox="0 0 3 2" aria-hidden="true"><path fill="#009246" d="M0 0h1v2H0z"/><path fill="#fff" d="M1 0h1v2H1z"/><path fill="#CE2B37" d="M2 0h1v2H2z"/></svg><span>Italiano</span><span class="vh"> (Italian)</span></label>
+      </fieldset>
+      <p class="langhint">Pick the language the document is written in: every page is then read and checked in that language.</p>
+
       <label for="file"><strong>Your own PDF</strong></label><br>
       <input type="file" id="file" accept="application/pdf,.pdf">
       <p class="muted small" id="limits" style="margin:8px 0 0"></p>
@@ -226,7 +240,7 @@ footer .wrap{padding-top:18px}
   async function upload(f){
     show($("uperr"),false);
     if(!f) return;
-    var fd=new FormData(); fd.append("file",f); fd.append("lang",$("lang").value);
+    var fd=new FormData(); fd.append("file",f); fd.append("lang",document.querySelector('input[name="lang"]:checked').value);
     try{var d=await api("/api/upload",{method:"POST",body:fd}); doc=d; show($("covcard"),true); show($("askcard"),false); renderPages(d); watch(d.id);
       $("covcard").scrollIntoView({behavior:"smooth",block:"start"});}
     catch(e){fail($("uperr"),e.message)}
