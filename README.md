@@ -32,12 +32,12 @@ Text inside a page is treated as untrusted data: the prompt tells the model not 
 
 ## NVIDIA Nemotron on Nebius Token Factory
 
-Every model call is a runtime call to the Token Factory inference API (`https://api.tokenfactory.nebius.com/v1`, OpenAI-compatible) with **`nvidia/nemotron-3-super-120b-a12b`**. See `app/llm.py`.
+Every model call is a runtime call to the Token Factory inference API (`https://api.tokenfactory.nebius.com/v1`, OpenAI-compatible) with **`nvidia/Nemotron-3.5-Super-VL`**. Until 30 October 2026 it ran on `nvidia/nemotron-3-super-120b-a12b`, which Nebius retires on 9 November 2026; the replacement has the same price and gave the same three verdicts on the three demo cases (FOUND with verified quotes, NOT FOUND, CANNOT SAY). See `app/llm.py`.
 
 What that made possible, measured on the built-in sample:
 
 - The first version of this idea ran a small open model on a CPU and took 77 to 185 seconds per question. On Token Factory the same question takes about 4 to 6 seconds, with every page examined in parallel.
-- A question over the 6-page sample costs about 0.001 USD (7 model calls), and the app shows the cost of each answer.
+- A question over the 6-page sample costs about 0.002 USD (7 model calls; 0.001 USD on the earlier model, which wrote shorter reasoning), and the app shows the cost of each answer.
 - Nemotron 3 Super returned quotes that were exact enough to pass a literal, character-level check. Two smaller models tried with the same prompt missed the page that mattered, which this design reports as a failed check rather than a wrong answer.
 
 The app keeps a daily budget and per-visitor limits so a public demo cannot run up a bill, and it waits and retries when the API rate-limits it. A page whose call still fails counts as "not examined", which makes the verdict CANNOT SAY rather than NOT FOUND.

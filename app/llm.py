@@ -12,7 +12,7 @@ import urllib.error
 import urllib.request
 
 BASE = os.environ.get("NEBIUS_BASE_URL", "https://api.tokenfactory.nebius.com/v1")
-MODEL = os.environ.get("EVERYPAGE_MODEL", "nvidia/nemotron-3-super-120b-a12b")
+MODEL = os.environ.get("EVERYPAGE_MODEL", "nvidia/Nemotron-3.5-Super-VL")
 PRICE_IN = float(os.environ.get("EVERYPAGE_PRICE_IN", "0.30"))     # USD per 1M input tokens
 PRICE_OUT = float(os.environ.get("EVERYPAGE_PRICE_OUT", "0.90"))   # USD per 1M output tokens
 
